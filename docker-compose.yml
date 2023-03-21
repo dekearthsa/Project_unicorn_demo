@@ -1,0 +1,148 @@
+version: '3.7'
+
+volumes:
+  database:
+    external: true
+
+services:
+  # nodejs:
+  #   container_name: node_server
+  #   image: node:17.8-alpine
+  #   tty: true
+  #   volumes:
+  #     - ".:/usr/app"
+
+  service_af:
+    container_name: service_af
+    restart: unless-stopped 
+    build:
+      context: "./service_af"
+    ports:
+      - "8021:8021"
+    networks:
+      - net
+
+  service_lfl:
+    container_name: service_lfl
+    restart: unless-stopped 
+    build:
+      context: "./service_lfl"
+    ports:
+      - "8022:8022"
+    networks:
+      - net
+
+  service_sk:
+    container_name: service_sk
+    restart: unless-stopped 
+    build:
+      context: "./service_sk"
+    ports:
+      - "8082:8082"
+    networks:
+      - net
+
+  service_wb:
+    container_name: service_wb
+    restart: unless-stopped 
+    build:
+      context: "./service_wb"
+    ports:
+      - "8083:8083"
+    networks:
+      - net
+
+  service_update:
+    container_name: service_update
+    restart: always
+    build:
+      context: "./service_update"
+    ports:
+      - "8180:8180"
+    networks:
+      - net
+  
+  service_finder:
+    container_name: service_finder
+    restart: always
+    build:
+      context: "./service_finder"
+    ports:
+      - "8181:8181"
+    networks:
+      - net
+  
+  service_insert:
+    container_name: service_insert
+    restart: always
+    build:
+      context: "./service_insert"
+    ports:
+      - "8182:8182"
+    networks:
+      - net
+
+  ## manage queue ## 
+  rabbitMQ:
+    container_name: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=1234
+    image: rabbitmq:management-alpine
+    tty: true
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - net
+
+  mosquitto:
+    container_name: mosquitto
+    restart: unless-stopped 
+    image: eclipse-mosquitto
+    volumes:
+      - ./mosquitto/config/mosquitto.passwd:/mosquitto/config/mosquitto.passwd
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    networks:
+      - net
+    
+  ## database ##
+  database:
+    container_name: database_mongo
+    restart: always
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - 27017:27017
+    networks:
+      - net
+    
+  database-admin:
+    container_name: mongo_express_gui
+    restart: always
+    image: mongo-express
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: root
+      ME_CONFIG_BASICAUTH_PASSWORD: root
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://root:root@database:27017/
+      ME_CONFIG_SITE_BASEURL: /mongoadmin/
+    ports:
+      - 8081:8081
+    networks:
+      - net
+
+networks:
+  net:
+    external: true
+    driver: bridge
+
